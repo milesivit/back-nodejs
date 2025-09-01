@@ -2,6 +2,7 @@ const { json } = require('express')
 const fs = require('fs')
 const path = require('path')
 const filePath = path.join(__dirname, '../data/usuarios.json')
+const bcrypt = require("bcrypt");
 
 const { Usuario } = require('../models');
 
@@ -48,22 +49,36 @@ const getUserById = async (req, res) =>{
     }
   }
 
-  const createUser = async (req, res) => {
-    const {nombre, email, edad} = req.body
+const createUser = async (req, res) => {
+  const { nombre, email, edad, role, contrasenia } = req.body;
 
-    try {
-        if (!nombre || !email || !edad) {
-                return res.status(400).json({ message: 'faltan datos obligatorios'})
-        }
-        const nuevoUsuario = await Usuario.create({nombre, email, edad})
-        res.status(201).json({message: 'usuario creado satisfactoriamente', data: nuevoUsuario })
-    } catch (error) {
-        console.error('Error al crear usuario :', error);
-        res.status(500).json({
-          message: error.message || 'Error interno del servidor'
-        });
+  try {
+    if (!nombre || !email || !edad || !contrasenia) {
+      return res.status(400).json({ message: "faltan datos obligatorios" });
     }
+
+    // Hashear contraseña antes de guardar
+    const hashedPassword = await bcrypt.hash(contrasenia, 10);
+
+    const nuevoUsuario = await Usuario.create({
+      nombre,
+      email,
+      edad,
+      role: role || "user",
+      contrasenia: hashedPassword,
+    });
+
+    res.status(201).json({
+      message: "usuario creado satisfactoriamente",
+      data: nuevoUsuario,
+    });
+  } catch (error) {
+    console.error("Error al crear usuario :", error);
+    res.status(500).json({
+      message: error.message || "Error interno del servidor",
+    });
   }
+};
 
 // Editar usuario
 const updateUsuario = async (req, res) => {
