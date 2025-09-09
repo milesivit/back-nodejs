@@ -149,7 +149,7 @@ const resetPassword = async(req,res) =>{
         const user = await Usuario.findByPk(id)
         if(!user) return res.status(400).json({ message: 'El usuario no existe'})
 
-        user.password = await bcrypt.hash(password, 10)
+        user.contrasenia = await bcrypt.hash(password, 10)
         await user.save()
 
         resetTokens.delete(Number(id))
