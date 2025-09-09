@@ -5,32 +5,36 @@ const crypto = require('crypto');
 const {sendEmail} = require('../utils/nodemailer')
 
 //registrar nuevo usuario
-const register = async (req, res) => {
-        
-    const { nombre, email, edad, contrasenia, role} = req.body;                
+const register = async (req, res) => { // una constante llamada register que contiene una funcion asincrona
+    //async permite usar await dentro de la funcion
+
+    const { nombre, email, edad, contrasenia, role} = req.body;      
+    //es una desestructuracion, sacas nombre, email, edad, contrasenia y role del body   
+    //si falta alguna propiedad, quedará undefined       
     
     try {
-        const userExist = await Usuario.findOne({
+        const userExist = await Usuario.findOne({ //se busca en la db un usuario con ese emil, si falla va al catch
             where: {
                 email
             }
         });
 
-        if (userExist) {
-            return res.status(400).json({ message: 'El usuario ya existe' });
+        if (userExist) { //si ya existe usuario con ese email
+            return res.status(400).json({ message: 'El usuario ya existe' }); //el return corta la funcion
         }
 
-        const hashContrasenia = await bcrypt.hash(contrasenia, 10);
-        const user = await Usuario.create({
-            nombre,
-            email,
+        const hashContrasenia = await bcrypt.hash(contrasenia, 10); //hasheo la contra con bcrypt
+        const user = await Usuario.create({ //creo un usuario en la db usuando los datos y la contra hash
+            nombre, //await se usa dentro de funciones asincronas, sirve para esperar que una promesa se resuelva para seguir ejecutando el codigo
+            email, //bcrypt libreria para hashear contras, se le puede agregar un salt para que si dos usuarios tienen la misma contra la hash sea distinta 
             edad,
             contrasenia: hashContrasenia,
             role: role || 'cliente'
         })
 
+        //respondo un 201 exitoso si sale todo bien
         res.status(201).json({ message: 'Usuario creado exitosamente', data: user });
-    } catch (error) {
+    } catch (error) { //sino error
         console.error('Error al crear usuario :', error);
         res.status(500).json({
             message: error.message || 'Error interno del servidor'
