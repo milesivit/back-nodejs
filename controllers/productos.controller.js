@@ -2,16 +2,14 @@ const { json } = require('express')
 const fs = require('fs')
 const path = require('path')
 const filePath = path.join(__dirname, '../data/productos.json')
+const { Op } = require('sequelize')
 
 const { Producto } = require('../models');
-const { measureMemory } = require('vm');
 
 const leerProductos = () => {
     const data = fs.readFileSync(filePath, 'utf8')
     return JSON.parse(data);
 }
-
-let productos = leerProductos();
 
 const escribirProductos = (productos) =>{
     fs.writeFileSync(filePath, JSON.stringify(productos, null, 2))
@@ -19,12 +17,25 @@ const escribirProductos = (productos) =>{
 
 const getProducts = async (req, res) => {
     try {
-      const productos = await Producto.findAll();
-      res.json({
-        data: productos,
+      const page = Math.max(1, parseInt(req.query.page, 10) || 1);
+      const limit = Math.max(1, parseInt(req.query.limit, 10) || 10);
+      const q = (req.query.q || '').trim()
+      const where = q ? {nombre:{[Op.like]: `%${q}%`}} : {}
+      const offset = (page-1)*limit
+      const {rows, count} = await Producto.findAndCountAll({
+        where,
+        offset,
+        limit,
+        order: [['id', 'DESC']]
+      })
+      return res.json({
+        data: rows,
+        total: count,
+        page,
+        totalPages: Math.ceil(count / limit),
         status: 200,
-        message: 'Productos obtenidos de manera exitosa'
-      });
+        message: 'productos obtenidos de manera exitosa'
+      })
     } catch (error) {
       console.error('Error al obtener productos:', error);
       res.status(500).json({
